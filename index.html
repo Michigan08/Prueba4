@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>No quiero perderte </title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb);
+      background-size: 400% 400%;
+      animation: moverFondo 10s ease infinite;
+      font-family: "Poppins", sans-serif;
+      color: white;
+      overflow: hidden;
+    }
+
+    @keyframes moverFondo {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    #subtitulos {
+      font-size: 28px;
+      text-align: center;
+      text-shadow: 2px 2px 8px black;
+      width: 90%;
+      max-width: 800px;
+      margin-top: 20px;
+      transition: color 0.3s;
+    }
+
+    #mensajeFinal {
+      display: none;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px 40px;
+      border-radius: 15px;
+      animation: aparecer 1s ease;
+    }
+
+    @keyframes aparecer {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    button {
+      background-color: #ff4081;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 10px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #ff1a66;
+    }
+  </style>
+</head>
+<body>
+  <h1>No quiero perderte </h1>
+  <div id="subtitulos"></div>
+
+  <div id="mensajeFinal">
+    <h2> ¿Quieres volver a escuchar la canción?</h2>
+    <button id="repetir">Sí, otra vez </button>
+    <button id="salir">No, salir </button>
+  </div>
+
+  <audio id="musica" src="noquiero.mp3"></audio>
+
+  <script>
+    const musica = document.getElementById("musica");
+    const subtitulos = document.getElementById("subtitulos");
+    const mensajeFinal = document.getElementById("mensajeFinal");
+    let letras = [];
+
+    //  Cargar el archivo LRC
+    async function cargarLRC() {
+      const respuesta = await fetch("letra.lrc");
+      const texto = await respuesta.text();
+      letras = texto.split("\n").map(linea => {
+        const match = linea.match(/\[(\d{2}):(\d{2}\.\d{2})\](.*)/);
+        if (!match) return null;
+        const minutos = parseInt(match[1]);
+        const segundos = parseFloat(match[2]);
+        const tiempo = minutos * 60 + segundos;
+        const textoLinea = match[3].trim();
+        return { tiempo, texto: textoLinea };
+      }).filter(l => l);
+    }
+
+    //  Mostrar subtítulos sincronizados
+    function sincronizarLRC() {
+      musica.addEventListener("timeupdate", () => {
+        const tiempo = musica.currentTime;
+        const linea = letras.findLast(l => tiempo >= l.tiempo);
+        subtitulos.textContent = linea ? linea.texto : "";
+      });
+    }
+
+    async function iniciar() {
+      await cargarLRC();
+      sincronizarLRC();
+
+      musica.play().catch(() => alert("Toca la pantalla para permitir el audio "));
+      musica.addEventListener("ended", () => {
+        subtitulos.textContent = "";
+        mensajeFinal.style.display = "block";
+      });
+    }
+
+    document.getElementById("repetir").addEventListener("click", () => {
+      mensajeFinal.style.display = "none";
+      musica.currentTime = 0;
+      iniciar();
+    });
+
+    document.getElementById("salir").addEventListener("click", () => {
+      alert("Gracias por escuchar ");
+      window.close();
+    });
+
+    window.addEventListener("load", iniciar);
+  </script>
+</body>
+</html>
